@@ -127,24 +127,42 @@ The following 9 vulnerabilities were detected due to outdated Go version and dep
 
 Created a comprehensive GitHub Actions pipeline (`.github/workflows/devsecops.yaml`) with the following stages:
 
-```
-+----------------+     +----------------+     +------------------+
-|     Lint       |---->|     SAST       |---->|  Secret Scan     |
-| (golangci-lint)|     |    (gosec)     |     |   (gitleaks)     |
-+----------------+     +----------------+     +------------------+
-        |                      |                      |
-        v                      v                      v
-+----------------+     +----------------+     +------------------+
-|     Build      |---->| Container Scan |---->|    IaC Scan      |
-|    (Docker)    |     |    (Trivy)     |     |    (Trivy)       |
-+----------------+     +----------------+     +------------------+
-        |                      |                      |
-        +----------------------+----------------------+
-                               |
-                               v
-                    +--------------------+
-                    |  Security Summary  |
-                    +--------------------+
+```mermaid
+flowchart TD
+    subgraph "Parallel Security Scans"
+        SAST["🔍 SAST<br/>(gosec)"]
+        SECRETS["🔑 Secret Detection<br/>(gitleaks)"]
+        DEPS["📦 Dependency Scan<br/>(govulncheck)"]
+        IAC["🏗️ IaC Scan<br/>(Trivy)"]
+        TEST["🧪 Unit Tests<br/>(go test)"]
+    end
+
+    subgraph "Build Pipeline"
+        LINT["✨ Lint<br/>(golangci-lint)"]
+        BUILD["🐳 Build<br/>(Docker)"]
+        CONTAINER["🔒 Container Scan<br/>(Trivy)"]
+    end
+
+    LINT --> BUILD
+    BUILD --> CONTAINER
+
+    SAST --> SUMMARY
+    SECRETS --> SUMMARY
+    DEPS --> SUMMARY
+    IAC --> SUMMARY
+    CONTAINER --> SUMMARY
+
+    SUMMARY["📊 Security Summary"]
+
+    style LINT fill:#4CAF50,color:#fff
+    style BUILD fill:#2196F3,color:#fff
+    style CONTAINER fill:#FF9800,color:#fff
+    style SAST fill:#9C27B0,color:#fff
+    style SECRETS fill:#E91E63,color:#fff
+    style DEPS fill:#00BCD4,color:#fff
+    style IAC fill:#FF5722,color:#fff
+    style TEST fill:#8BC34A,color:#fff
+    style SUMMARY fill:#607D8B,color:#fff
 ```
 
 ### Pipeline Jobs
