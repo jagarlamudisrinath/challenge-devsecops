@@ -19,7 +19,7 @@ I approached this challenge in a structured, phased manner following DevSecOps b
 | Issue | Severity | Before | After |
 |-------|----------|--------|-------|
 | Running as root | Critical | `USER root` | Created non-root user `appuser` (UID 1000) |
-| Outdated base image | High | `golang:1.16-buster` | `golang:1.21-alpine` + `alpine:3.19` |
+| Outdated base image | High | `golang:1.16-buster` | `golang:1.23-alpine` + `alpine:3.19` |
 | Large attack surface | Medium | Full Debian-based image | Minimal Alpine image |
 | No health check | Low | None | Added `HEALTHCHECK` instruction |
 | SQLite build issues | Medium | CGO build failures | Added `sqlite-dev` and `CGO_CFLAGS` |
@@ -64,20 +64,31 @@ After creating the DevSecOps pipeline, the following vulnerabilities were detect
 
 ### Dependency Scan (govulncheck) - FIXED
 
-The following Go standard library vulnerabilities were detected due to outdated Go version (1.16):
+The following vulnerabilities were detected due to outdated Go version and dependencies:
 
 | Vulnerable Function | Called By | CVE/Issue | Fix Applied |
 |---------------------|-----------|-----------|-------------|
-| `tls.Conn.Read` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go 1.16 → 1.21 |
-| `tls.Conn.HandshakeContext` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go 1.16 → 1.21 |
-| `pem.Decode` | `db.PostgresConnection` → `gorm.Open` | PEM parsing issues | Updated Go 1.16 → 1.21 |
-| `url.ParseRequestURI` | `api.Start` → `gin.Engine.Run` | URL parsing vulnerabilities | Updated Go 1.16 → 1.21 |
-| `url.Parse` | `api.AddUser` → `binding.sliceValidateError` | URL parsing vulnerabilities | Updated Go 1.16 → 1.21 |
-| `asn1.Unmarshal` | `challenge.init#1` → `os.Getenv` | ASN.1 parsing issues | Updated Go 1.16 → 1.21 |
-| `x509.Certificate.Verify` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go 1.16 → 1.21 |
-| `x509.Certificate.VerifyHostname` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go 1.16 → 1.21 |
+| `tls.Conn.Read` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go & dependencies |
+| `tls.Conn.HandshakeContext` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go & dependencies |
+| `pem.Decode` | `db.PostgresConnection` → `gorm.Open` | PEM parsing issues | Updated Go & dependencies |
+| `url.ParseRequestURI` | `api.Start` → `gin.Engine.Run` | URL parsing vulnerabilities | Updated Go & dependencies |
+| `url.Parse` | `api.AddUser` → `binding.sliceValidateError` | URL parsing vulnerabilities | Updated Go & dependencies |
+| `asn1.Unmarshal` | `challenge.init#1` → `os.Getenv` | ASN.1 parsing issues | Updated Go & dependencies |
+| `x509.Certificate.Verify` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go & dependencies |
+| `x509.Certificate.VerifyHostname` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go & dependencies |
 
-**Resolution**: Updated `go.mod` from Go 1.16 to Go 1.21, which includes security patches for all the above standard library vulnerabilities.
+**Resolution**: Updated Go 1.16 → 1.23 and all dependencies to latest versions:
+
+| Dependency | Before | After |
+|------------|--------|-------|
+| Go | 1.16 | 1.23 |
+| gin | v1.7.4 | v1.10.0 |
+| gorm | v1.21.15 | v1.25.12 |
+| gorm/postgres | v1.1.1 | v1.5.9 |
+| gorm/sqlite | v1.1.5 | v1.5.6 |
+| golang.org/x/crypto | 2021-08-17 | v0.31.0 |
+| golang.org/x/sys | 2021-06-15 | v0.28.0 |
+| golang.org/x/text | v0.3.7 | v0.21.0 |
 
 ### IaC Security Scan (Trivy) - FIXED
 
@@ -159,6 +170,8 @@ All security findings are uploaded to GitHub's Security tab using SARIF format:
 | `cf15d86` | fix: Resolve golangci-lint errcheck errors |
 | `5a5d32b` | fix: Update Go to 1.21 and CodeQL Action to v4 |
 | `bd0e8d9` | fix: Update go.mod and go.sum with go mod tidy |
+| `ee96baf` | docs: Update WORK_SUMMARY with pipeline scan results and fixes |
+| `31f2000` | fix: Update Go to 1.23 and all dependencies to latest versions |
 
 ---
 
