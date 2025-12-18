@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev sqlite-dev
