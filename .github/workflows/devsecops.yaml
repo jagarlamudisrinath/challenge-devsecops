@@ -51,7 +51,7 @@ jobs:
           args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gosec-results.sarif
           category: gosec
@@ -147,7 +147,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-container-results.sarif'
           category: trivy-container
@@ -181,13 +181,13 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload K8s IaC scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-iac-k8s-results.sarif'
           category: trivy-iac-k8s
 
       - name: Upload Docker IaC scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-iac-docker-results.sarif'
           category: trivy-iac-docker
