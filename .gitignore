@@ -2,3 +2,8 @@
 test.db
 bin/
 Solution.md
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local

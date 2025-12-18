@@ -15,16 +15,62 @@ spec:
       labels:
         app: challenge
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
       - name: challenge
         image: docker.io/loftorbital/devsecops-junior-challenge-go:latest
         securityContext:
-          privileged: true
-          allowPrivilegeEscalation: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "slldihjrpoaneurs"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "jjdlsowenodvspdfneriuverinvwecn;sdcsdjvsa"
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: challenge-secrets
+                key: postgres-user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: challenge-secrets
+                key: postgres-password
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: challenge-secrets
+                key: postgres-db
+          - name: POSTGRES_HOST
+            value: "postgres"
         ports:
-        - containerPort: 80
+        - containerPort: 10000
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+          requests:
+            cpu: "250m"
+            memory: "128Mi"
+        livenessProbe:
+          httpGet:
+            path: /v1/users
+            port: 10000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/users
+            port: 10000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
