@@ -1,0 +1,32 @@
+---
+version: "3.8"
+services: 
+
+  challenge: 
+    image: docker.io/loftorbital/devsecops-junior-challenge-go:latest
+    restart: always
+    environment: 
+      POSTGRES_PASSWORD: "6199178B-28C5-4960-89FD-B1E55E0044E6"
+      POSTGRES_USER: "challenge"
+      POSTGRES_DB: "challenge"
+      POSTGRES_HOST: "postgres"
+    ports: 
+      - "10000:10000"
+    build:
+      context: .
+      dockerfile: Dockerfile
+  
+  postgres:
+    image: postgres:9.6.23-buster
+    environment: 
+      POSTGRES_PASSWORD: "6199178B-28C5-4960-89FD-B1E55E0044E6"
+      POSTGRES_USER: "challenge"
+      POSTGRES_DB: "challenge"
+      POSTGRES_HOST: "postgres"
+    volumes:
+    - postgres:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+
+volumes: 
+  postgres:

@@ -1,0 +1,30 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: challenge
+  labels:
+    app: challenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: challenge
+  template:
+    metadata:
+      labels:
+        app: challenge
+    spec:
+      containers:
+      - name: challenge
+        image: docker.io/loftorbital/devsecops-junior-challenge-go:latest
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: "slldihjrpoaneurs"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "jjdlsowenodvspdfneriuverinvwecn;sdcsdjvsa"
+        ports:
+        - containerPort: 80
