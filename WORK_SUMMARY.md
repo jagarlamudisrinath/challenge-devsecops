@@ -19,7 +19,7 @@ I approached this challenge in a structured, phased manner following DevSecOps b
 | Issue | Severity | Before | After |
 |-------|----------|--------|-------|
 | Running as root | Critical | `USER root` | Created non-root user `appuser` (UID 1000) |
-| Outdated base image | High | `golang:1.16-buster` | `golang:1.23-alpine` + `alpine:3.19` |
+| Outdated base image | High | `golang:1.16-buster` | `golang:1.24-alpine` + `alpine:3.19` |
 | Large attack surface | Medium | Full Debian-based image | Minimal Alpine image |
 | No health check | Low | None | Added `HEALTHCHECK` instruction |
 | SQLite build issues | Medium | CGO build failures | Added `sqlite-dev` and `CGO_CFLAGS` |
@@ -64,31 +64,41 @@ After creating the DevSecOps pipeline, the following vulnerabilities were detect
 
 ### Dependency Scan (govulncheck) - FIXED
 
-The following vulnerabilities were detected due to outdated Go version and dependencies:
+The following 9 vulnerabilities were detected due to outdated Go version and dependencies:
 
-| Vulnerable Function | Called By | CVE/Issue | Fix Applied |
-|---------------------|-----------|-----------|-------------|
-| `tls.Conn.Read` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go & dependencies |
-| `tls.Conn.HandshakeContext` | `api.Start` → `gin.Engine.Run` | TLS vulnerabilities | Updated Go & dependencies |
-| `pem.Decode` | `db.PostgresConnection` → `gorm.Open` | PEM parsing issues | Updated Go & dependencies |
-| `url.ParseRequestURI` | `api.Start` → `gin.Engine.Run` | URL parsing vulnerabilities | Updated Go & dependencies |
-| `url.Parse` | `api.AddUser` → `binding.sliceValidateError` | URL parsing vulnerabilities | Updated Go & dependencies |
-| `asn1.Unmarshal` | `challenge.init#1` → `os.Getenv` | ASN.1 parsing issues | Updated Go & dependencies |
-| `x509.Certificate.Verify` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go & dependencies |
-| `x509.Certificate.VerifyHostname` | `api.Start` → `gin.Engine.Run` | Certificate verification | Updated Go & dependencies |
+| CVE/Issue | Package | Description | Fixed In |
+|-----------|---------|-------------|----------|
+| GO-2025-4175 | crypto/x509 | Improper wildcard DNS name constraints | Go 1.24.11 |
+| GO-2025-4155 | crypto/x509 | Resource consumption in host cert validation | Go 1.24.11 |
+| GO-2025-4013 | crypto/x509 | Panic with DSA public keys | Go 1.24.8 |
+| GO-2025-4011 | encoding/asn1 | DER parsing memory exhaustion | Go 1.24.8 |
+| GO-2025-4010 | net/url | IPv6 hostname validation bypass | Go 1.24.8 |
+| GO-2025-4009 | encoding/pem | Quadratic complexity parsing | Go 1.24.8 |
+| GO-2025-4008 | crypto/tls | ALPN negotiation info leak | Go 1.24.8 |
+| GO-2025-4007 | crypto/x509 | Name constraints quadratic complexity | Go 1.24.9 |
+| GO-2025-3595 | golang.org/x/net | XSS in html tokenizer | v0.38.0 |
 
-**Resolution**: Updated Go 1.16 → 1.23 and all dependencies to latest versions:
+**Resolution Process**:
 
-| Dependency | Before | After |
-|------------|--------|-------|
-| Go | 1.16 | 1.23 |
-| gin | v1.7.4 | v1.10.0 |
-| gorm | v1.21.15 | v1.25.12 |
-| gorm/postgres | v1.1.1 | v1.5.9 |
-| gorm/sqlite | v1.1.5 | v1.5.6 |
-| golang.org/x/crypto | 2021-08-17 | v0.31.0 |
-| golang.org/x/sys | 2021-06-15 | v0.28.0 |
-| golang.org/x/text | v0.3.7 | v0.21.0 |
+1. **Initial attempt (Go 1.21)**: Updated from Go 1.16 to 1.21 - still had vulnerabilities
+2. **Second attempt (Go 1.23)**: Updated to Go 1.23 - 9 vulnerabilities persisted (required Go 1.24)
+3. **Final fix (Go 1.24)**: Updated to Go 1.24 + golang.org/x/net v0.38.0 - **0 vulnerabilities**
+
+**Final Dependency Versions**:
+
+| Dependency | Original | Final |
+|------------|----------|-------|
+| **Go** | 1.16 | **1.24** |
+| **gin** | v1.7.4 | v1.10.0 |
+| **gorm** | v1.21.15 | v1.25.12 |
+| **gorm/postgres** | v1.1.1 | v1.5.9 |
+| **gorm/sqlite** | v1.1.5 | v1.5.6 |
+| **golang.org/x/crypto** | 2021-08-17 | **v0.36.0** |
+| **golang.org/x/net** | v0.0.0 | **v0.38.0** |
+| **golang.org/x/sys** | 2021-06-15 | **v0.31.0** |
+| **golang.org/x/text** | v0.3.7 | **v0.23.0** |
+
+**govulncheck Result**: `No vulnerabilities found. Your code is affected by 0 vulnerabilities.`
 
 ### IaC Security Scan (Trivy) - FIXED
 
@@ -141,15 +151,15 @@ Created a comprehensive GitHub Actions pipeline (`.github/workflows/devsecops.ya
 
 | Job | Tool | Purpose | Status |
 |-----|------|---------|--------|
-| lint | golangci-lint v1.64.8 | Code quality and style checks | Passing |
-| sast | gosec | Go-specific security vulnerability detection | Reports findings |
-| secrets | gitleaks | Detect hardcoded secrets and credentials | Reports findings |
-| dependency-scan | govulncheck | Check for vulnerabilities in dependencies | Passing (Go 1.21) |
-| build | Docker | Build container image | Passing |
-| container-scan | Trivy | Scan container for CVEs | Reports findings |
-| iac-scan | Trivy | Scan Kubernetes/Docker configs | Passing |
-| test | go test | Run unit tests with coverage | Passing |
-| security-summary | - | Aggregate results in GitHub Actions summary | Passing |
+| lint | golangci-lint v1.64.8 | Code quality and style checks | ✅ Passing |
+| sast | gosec | Go-specific security vulnerability detection | ✅ Reports to Security tab |
+| secrets | gitleaks | Detect hardcoded secrets and credentials | ✅ Reports to Security tab |
+| dependency-scan | govulncheck | Check for vulnerabilities in dependencies | ✅ Passing (Go 1.24 - 0 vulns) |
+| build | Docker | Build container image | ✅ Passing |
+| container-scan | Trivy | Scan container for CVEs | ✅ Reports to Security tab |
+| iac-scan | Trivy | Scan Kubernetes/Docker configs | ✅ Passing |
+| test | go test | Run unit tests with coverage | ✅ Passing |
+| security-summary | - | Aggregate results in GitHub Actions summary | ✅ Passing |
 
 ### Security Reports
 
@@ -172,6 +182,8 @@ All security findings are uploaded to GitHub's Security tab using SARIF format:
 | `bd0e8d9` | fix: Update go.mod and go.sum with go mod tidy |
 | `ee96baf` | docs: Update WORK_SUMMARY with pipeline scan results and fixes |
 | `31f2000` | fix: Update Go to 1.23 and all dependencies to latest versions |
+| `f20aa71` | docs: Update WORK_SUMMARY with Go 1.23 and dependency updates |
+| `8ec2760` | fix: Update to Go 1.24 and golang.org/x/net v0.38.0 (0 vulnerabilities) |
 
 ---
 
@@ -179,15 +191,16 @@ All security findings are uploaded to GitHub's Security tab using SARIF format:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `Dockerfile` | Modified | Non-root user, Alpine base, Go 1.21, health check, CGO flags |
+| `Dockerfile` | Modified | Non-root user, Alpine base, Go 1.24, health check, CGO flags |
 | `docker-compose.yaml` | Modified | Env vars, updated versions, resource limits |
 | `k8s/deployment.yaml` | Modified | Security context, secrets reference, probes |
 | `.gitignore` | Modified | Added .env to prevent secret commits |
-| `go.mod` | Modified | Updated Go 1.16 → 1.21, added indirect dependencies |
-| `go.sum` | Modified | Regenerated for Go 1.21 compatibility |
+| `go.mod` | Modified | Updated Go 1.16 → 1.24, all dependencies to latest |
+| `go.sum` | Modified | Regenerated for Go 1.24 compatibility |
 | `api/api.go` | Modified | Added error handling for router.Run() |
 | `api/controller.go` | Modified | Explicitly handle BindJSON error |
 | `main.go` | Modified | Added error handling for DB connections and migrations |
+| `.github/workflows/devsecops.yaml` | Modified | Go 1.24, CodeQL v4 |
 
 ## Files Created
 
@@ -256,8 +269,9 @@ The following application-level security issues were detected by the pipeline an
 - **Secret Management**: No hardcoded secrets in IaC, use environment variables/K8s secrets
 - **Immutable Infrastructure**: Read-only filesystem, minimal base images
 - **Continuous Monitoring**: Automated security scans on every commit
-- **Dependency Management**: Updated to Go 1.21 with security patches
+- **Dependency Management**: Updated to Go 1.24 with all security patches (0 vulnerabilities)
 - **SARIF Reporting**: Security findings uploaded to GitHub Security tab
+- **Iterative Security**: Used pipeline feedback to progressively fix vulnerabilities
 
 ---
 
