@@ -1,14 +1,14 @@
 FROM golang:1.21-alpine AS build
 
 # Install build dependencies
-RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 
 WORKDIR /go/src/app
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=1 go build -o bin/challenge
+RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" go build -o bin/challenge
 
 # Production stage - minimal image
 FROM alpine:3.19

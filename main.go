@@ -13,14 +13,23 @@ func init() {
 
 	if len(os.Getenv("POSTGRES_HOST")) > 0 {
 		fmt.Println("Using postgresql DB driver")
-		db.PostgresConnection()
+		if err := db.PostgresConnection(); err != nil {
+			fmt.Printf("Failed to connect to PostgreSQL: %v\n", err)
+			os.Exit(1)
+		}
 	} else {
 		fmt.Println(os.Getenv("POSTGRES_HOST"))
-		db.SqliteConnector()
+		if err := db.SqliteConnector(); err != nil {
+			fmt.Printf("Failed to connect to SQLite: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Run migrations
-	db.Conn.AutoMigrate(&dummy.User{})
+	if err := db.Conn.AutoMigrate(&dummy.User{}); err != nil {
+		fmt.Printf("Failed to run migrations: %v\n", err)
+		os.Exit(2)
+	}
 
 	// Create the admin user
 	var users []dummy.User

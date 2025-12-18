@@ -22,5 +22,7 @@ func RespondJSON(w *gin.Context, status int, payload interface{}) {
 
 func Start() {
 	router := setupRouter()
-	router.Run(":10000")
+	if err := router.Run(":10000"); err != nil {
+		fmt.Printf("Failed to start server: %v\n", err)
+	}
 }

@@ -10,7 +10,7 @@ import (
 
 func ListUsers(c *gin.Context) {
 	var users []dummy.User
-	c.BindJSON(&users)
+	_ = c.BindJSON(&users)
 
 	users, n, err := dummy.UserList()
 	if err != nil {
